@@ -1,0 +1,14 @@
+{
+  "name": "World Cup 2026 — Floating Lighthouse",
+  "short_name": "WC 2026",
+  "description": "Your tournament — live matches, jersey-themed, every team, every minute.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050810",
+  "theme_color": "#050810",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}

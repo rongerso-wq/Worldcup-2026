@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* --- WORLD CUP 2026 — DESIGN TOKENS --------------------------------------
+   Dimensional, FIFA-menu aesthetic. Near-black canvas, jersey-themed surfaces.
+   All --team-* vars are overwritten at runtime by <JerseyThemeProvider>.
+--------------------------------------------------------------------------- */
+:root {
+  /* Canvas */
+  --bg-deep:        #050810;
+  --bg-stage:       #0a0f1c;
+  --bg-card:        #11172a;
+  --bg-card-2:      #161d34;
+  --line:           #1f2842;
+  --line-strong:    #2a3558;
+  --ink:            #e8edff;
+  --ink-dim:        #8892b8;
+  /* Bumped from #54607c (≈4.0:1 on --bg-deep) to #6f7ca0 (≈5.3:1)
+     to clear WCAG 2.2 SC 1.4.3 for small-text labels. */
+  --ink-faint:      #6f7ca0;
+
+  /* Pitch */
+  --pitch-1:        #0e3d20;
+  --pitch-2:        #155429;
+  --pitch-line:     #b9d8c1;
+
+  /* Stadium light */
+  --floodlight:     #00ff9d;
+  --floodlight-2:   #00d4ff;
+  --hot:            #ff3b6b;
+  --gold:           #ffcb47;
+
+  /* Jersey theme (default = Argentina) */
+  --team-primary:   #75AADB;
+  --team-secondary: #FFFFFF;
+  --team-accent:    #F6B40E;
+  --team-ink:       #0A1A2A;
+}
+
+@theme inline {
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-stage: var(--bg-stage);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-2: var(--bg-card-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-faint: var(--ink-faint);
+  --color-pitch-1: var(--pitch-1);
+  --color-pitch-2: var(--pitch-2);
+  --color-floodlight: var(--floodlight);
+  --color-floodlight-2: var(--floodlight-2);
+  --color-hot: var(--hot);
+  --color-gold: var(--gold);
+  --color-team-primary: var(--team-primary);
+  --color-team-secondary: var(--team-secondary);
+  --color-team-accent: var(--team-accent);
+  --color-team-ink: var(--team-ink);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+html, body {
+  background: var(--bg-deep);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Glass card — transparent so the smoke shows through every surface */
+.card-dim {
+  background: color-mix(in oklab, var(--bg-card) 35%, transparent);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  /* Outline must clear WCAG 2.2 SC 1.4.11 (≥3:1) on every kit;
+     mixing the guaranteed-contrast --team-ink-hi keeps pale kits (ENG/GER/ARG) visible. */
+  border: 1px solid color-mix(in oklab, var(--team-ink-hi, var(--ink)) 18%, color-mix(in oklab, white 8%, transparent));
+  border-radius: 22px;
+  box-shadow:
+    0 1px 0 color-mix(in oklab, white 10%, transparent) inset,
+    0 30px 60px -24px color-mix(in oklab, var(--team-primary) 45%, transparent),
+    0 8px 24px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* Diagonal cut (FIFA-menu sharp clip) */
+.clip-fifa {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+.clip-fifa-l {
+  clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+}
+
+/* Edge-glow chip */
+.chip-glow {
+  background: color-mix(in oklab, var(--team-primary) 18%, var(--bg-card));
+  border: 1px solid color-mix(in oklab, var(--team-primary) 45%, var(--line));
+  color: var(--ink);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--team-primary) 25%, transparent),
+              0 6px 22px -10px color-mix(in oklab, var(--team-primary) 60%, transparent);
+}
+
+/* Oversized scoreboard number */
+.score-num {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 0.85;
+}
+
+/* Subtle floodlight ring on focus */
+*:focus-visible {
+  outline: 2px solid var(--floodlight);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* hide scrollbar for horizontal chip rails */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
