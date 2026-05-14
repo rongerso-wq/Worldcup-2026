@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTeamTheme } from "@/components/JerseyThemeProvider";
+import MyFixturesCard from "@/components/MyFixturesCard";
 
 export default function MePage() {
   const { team, hasTeam, clearTeam } = useTeamTheme();
@@ -48,16 +49,24 @@ export default function MePage() {
         )}
       </div>
 
-      <div className="card-dim p-4">
-        <h2 className="font-display uppercase tracking-[0.18em] text-[11px] text-[color:var(--ink-faint)] mb-2">
-          Coming
-        </h2>
-        <ul className="text-sm text-[color:var(--ink-dim)] space-y-1">
-          <li>· Onboarding (team → rival → fav player) — Phase 5</li>
-          <li>· News strip tuned to your team — Phase 8</li>
-          <li>· Predict-bracket save state — Phase 7</li>
-        </ul>
-      </div>
+      {hasTeam && <MyFixturesCard team={team} />}
+
+      {!hasTeam && (
+        <div className="card-dim p-4">
+          <h2 className="font-display uppercase tracking-[0.18em] text-[11px] text-[color:var(--ink-faint)] mb-2">
+            What you&apos;d see here
+          </h2>
+          <p className="text-sm text-[color:var(--ink-dim)] leading-relaxed">
+            Pick a team and this tab fills with your team&apos;s three group-stage matches in Israel time, plus a one-tap calendar export so you don&apos;t miss a kickoff.
+          </p>
+          <Link
+            href="/teams"
+            className="inline-block mt-3 font-display uppercase tracking-wider text-[11px] chip-glow rounded-full px-3 py-1.5"
+          >
+            Pick a team →
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
