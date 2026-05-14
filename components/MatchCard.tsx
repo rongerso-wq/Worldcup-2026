@@ -115,7 +115,7 @@ export default function MatchCard({
   return (
     <Link
       href={`/match/${m.id}`}
-      className="block card-dim relative overflow-hidden transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--team-accent)]"
+      className="block card-dim relative overflow-hidden transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--team-ink-hi)]"
       style={
         highlight
           ? {
@@ -199,7 +199,7 @@ function Side({ team, align }: { team: Team; align: "start" | "end" }) {
         <span className="font-display uppercase tracking-wider text-base leading-none">
           {team.code}
         </span>
-        <span className="text-[10px] text-[color:var(--ink-faint)] leading-tight truncate w-full">
+        <span className="text-[12px] text-[color:var(--ink-dim)] leading-tight line-clamp-2 w-full">
           {team.name}
         </span>
       </div>

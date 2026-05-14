@@ -121,18 +121,19 @@ export default function BracketPage() {
         )}
       </header>
 
-      {/* Round-jumper: pill row above the bracket. */}
-      <div className="-mx-4 px-4 overflow-x-auto no-scrollbar">
-        <div className="flex gap-1.5 pb-1" role="tablist" aria-label="Bracket round">
+      {/* Round-jumper: pill row above the bracket. WCAG 2.2 SC 1.3.1 +
+          ARIA APG scroll-to-section: nav + aria-current="step" on active. */}
+      <nav aria-label="Jump to bracket round" className="-mx-4 px-4 overflow-x-auto no-scrollbar">
+        <div className="flex gap-1.5 pb-1">
           {ROUND_ORDER.map((r, idx) => {
             const active = r === activeRound;
             return (
               <button
                 key={r}
-                role="tab"
-                aria-selected={active}
+                type="button"
+                aria-current={active ? "step" : undefined}
                 onClick={() => jumpToRound(idx)}
-                className="shrink-0 rounded-full px-3 py-1.5 font-display uppercase tracking-[0.18em] text-[11px] transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--team-accent)]"
+                className="shrink-0 rounded-full px-3 py-1.5 font-display uppercase tracking-[0.18em] text-[11px] transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--team-ink-hi)]"
                 style={{
                   background: active
                     ? "linear-gradient(135deg, var(--team-primary), var(--team-accent))"
@@ -146,7 +147,7 @@ export default function BracketPage() {
             );
           })}
         </div>
-      </div>
+      </nav>
 
       {/* horizontally scrollable rounds */}
       <div className="relative -mx-4">
@@ -164,6 +165,9 @@ export default function BracketPage() {
         <div
           ref={stripRef}
           onScroll={onStripScroll}
+          role="region"
+          aria-label={`Knockout bracket, ${activeRound} round in view, scrollable`}
+          tabIndex={0}
           className="px-4 overflow-x-auto no-scrollbar scroll-smooth"
         >
           <div className="flex items-start gap-3 pb-2" style={{ width: ROUND_ORDER.length * COL_WIDTH }}>

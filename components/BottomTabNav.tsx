@@ -95,7 +95,7 @@ export default function BottomTabNav() {
               aria-label={t.label}
               aria-current={active ? "page" : undefined}
               onClick={() => { if (!active) haptics.tap(); }}
-              className="relative h-12 w-12 flex items-center justify-center rounded-full transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-deep)] focus-visible:ring-[color:var(--team-accent)]"
+              className="relative h-12 w-12 flex items-center justify-center rounded-full transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg-deep)] focus-visible:ring-[color:var(--team-ink-hi)]"
               style={{
                 background: active
                   ? `linear-gradient(135deg, var(--team-primary), var(--team-accent))`

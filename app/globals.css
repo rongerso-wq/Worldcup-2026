@@ -113,9 +113,11 @@ body {
   line-height: 0.85;
 }
 
-/* Subtle floodlight ring on focus */
+/* Subtle floodlight ring on focus. Uses --team-ink-hi (WCAG-luminance-picked
+   B&W on team-primary) so pale kits (England, Argentina, Germany) still
+   have a visible focus ring — WCAG 2.2 SC 2.4.11 + 1.4.11 (3:1 non-text). */
 *:focus-visible {
-  outline: 2px solid var(--floodlight);
+  outline: 2px solid var(--team-ink-hi, var(--floodlight));
   outline-offset: 2px;
   border-radius: 6px;
 }

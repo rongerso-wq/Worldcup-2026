@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import { useTeamTheme } from "./JerseyThemeProvider";
 import { formatIsraelTime, formatIsraelDate } from "@/lib/datetime";
 
@@ -105,6 +105,9 @@ function Slot({
   small?: boolean;
 }) {
   const text = value == null ? "--" : String(value).padStart(2, "0");
+  // WCAG 2.2 SC 2.3.3 Animation from Interactions: respect user motion prefs.
+  // The smoke shader already pauses under reduced-motion; the digit-roll must too.
+  const reduce = useReducedMotion();
   // WCAG 2.2 SC 1.4.3: a wide neon halo over animated smoke can drop effective
   // contrast below 4.5:1. Cap "days" to 96px and replace the halo with a thin
   // ink-hi text-stroke + tight glow so the digit stays legible on every kit.
@@ -131,10 +134,10 @@ function Slot({
         <AnimatePresence mode="popLayout" initial={false}>
           <m.span
             key={text}
-            initial={{ y: "-100%", opacity: 0 }}
+            initial={reduce ? { opacity: 0 } : { y: "-100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: "100%", opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            exit={reduce ? { opacity: 0 } : { y: "100%", opacity: 0 }}
+            transition={{ duration: reduce ? 0.12 : 0.32, ease: [0.22, 1, 0.36, 1] }}
             className="block"
           >
             {text}

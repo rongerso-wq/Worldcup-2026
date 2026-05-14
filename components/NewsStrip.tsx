@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Team } from "@/lib/teams";
 
 type Article = {
@@ -27,6 +28,7 @@ function relTime(iso: string): string {
 export default function NewsStrip({ team }: { team: Team }) {
   const [articles, setArticles] = useState<Article[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,7 @@ export default function NewsStrip({ team }: { team: Team }) {
       })
       .catch((e) => !cancelled && setErr(String(e)));
     return () => { cancelled = true; };
-  }, [team.code]);
+  }, [team.code, retryNonce]);
 
   return (
     <section>
@@ -65,8 +67,25 @@ export default function NewsStrip({ team }: { team: Team }) {
       </div>
 
       {err && (
-        <div className="card-dim p-3 text-[12px] text-[color:var(--ink-dim)]">
-          Couldn&apos;t load news for {team.name}.
+        <div className="card-dim p-3 flex flex-col gap-2">
+          <div className="text-[12px] text-[color:var(--ink-dim)]">
+            Couldn&apos;t load news for {team.name}.
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRetryNonce((n) => n + 1)}
+              className="chip-glow rounded-full px-3 py-1 font-display uppercase tracking-[0.18em] text-[10px]"
+            >
+              Retry
+            </button>
+            <Link
+              href={`/team/${team.code}`}
+              className="text-[11px] font-display uppercase tracking-[0.18em] text-[color:var(--team-primary)]"
+            >
+              See {team.code} fixtures →
+            </Link>
+          </div>
         </div>
       )}
 
@@ -85,8 +104,16 @@ export default function NewsStrip({ team }: { team: Team }) {
       )}
 
       {!err && articles && articles.length === 0 && (
-        <div className="card-dim p-3 text-[12px] text-[color:var(--ink-dim)]">
-          No recent headlines for {team.name}.
+        <div className="card-dim p-3 flex flex-col gap-2">
+          <div className="text-[12px] text-[color:var(--ink-dim)]">
+            News feed is quiet for {team.name}.
+          </div>
+          <Link
+            href={`/team/${team.code}`}
+            className="text-[11px] font-display uppercase tracking-[0.18em] text-[color:var(--team-primary)]"
+          >
+            See {team.code} fixtures →
+          </Link>
         </div>
       )}
 
