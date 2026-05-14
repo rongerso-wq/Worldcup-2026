@@ -8,7 +8,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Floating Lighthouse** — a mobile-first interactive web app for FIFA World Cup 2026 (June 11 – July 19, 2026 · USA/Canada/Mexico · 48 teams · 104 matches). Built for Roni Gershonovitch. Goal isn't another scoreboard — it's a focused, jersey-themed single-tournament app. Each user picks a team and the entire UI repaints in that team's colors via CSS custom properties + a WebGL fbm-smoke shader that tints the whole canvas.
 
-**Phased build plan** (source of truth for what to build next): `C:\Users\litbe\.claude\plans\i-want-to-built-floating-lighthouse.md`. Phases 1–9 shipped (Phase 9 = motion + haptics + service worker + a11y/perf polish; Phase 9.5 layered in the Smith/Gourges audit fixes — CSP, fetch byte caps, focus trap, theme-bootstrap script, contrast tokens, bracket round-jumper). **Phase 10 (Vercel deploy) is next** — the repo isn't yet in any git remote.
+**Phased build plan** (source of truth for what to build next): `C:\Users\litbe\.claude\plans\i-want-to-built-floating-lighthouse.md`. Phases 1–9.5 shipped (Phase 9 = motion + haptics + service worker + a11y/perf polish; Phase 9.5 layered in the Smith/Gourges audit fixes — CSP, fetch byte caps, focus trap, theme-bootstrap script, contrast tokens, bracket round-jumper). **Phase 10 (Vercel deploy) shipped.**
+
+**Live deployment:**
+- Production: <https://world-cup-2026-rouge.vercel.app>
+- GitHub: <https://github.com/rongerso-wq/Worldcup-2026> (auto-deploys to Vercel on push to `main`)
+- Vercel project: `world-cup-2026` under `rongerso-wqs-projects` scope
+- Deployment Protection is **on** by default (personal-scope project). If you need a publicly shareable URL without login, disable it in Project Settings → Deployment Protection.
+
+**Manual deploy** (without going through GitHub) — from the project folder: `vercel deploy` (preview) or `vercel deploy --prod` (promote).
 
 ## Commands
 
@@ -46,7 +54,9 @@ TheSportsDB (ENRICHMENT — confirmed venues, kickoff ISOs, badges, player photo
 Google News RSS (per-team news, no key)
 ```
 
-- [lib/data.ts](lib/data.ts) — single entry point. `getAllFixtures` merges OF + SDB keyed on `date|home|away`; **all other fixture getters route through `getAllFixtures` so the merge logic lives in one place**.
+- [lib/data.ts](lib/data.ts) — single entry point. Two distinct patterns coexist:
+  - **Merge** (`getAllFixtures`, `getMatch`, `getTeamFixtures`): start from openfootball (OF) as the base, overlay TheSportsDB (SDB) fields keyed on `date|home|away`. SDB enriches `kickoffISO`, `venue`, badges, scores; OF keeps the stable id. Use this anywhere you need the full 104-match list or a specific match by id.
+  - **Fallback** (`getFixturesByDate`): try SDB live first, fall back to OF on failure or empty result. **No merge.** This means a successful SDB fetch won't pick up OF-only fields (knockout placeholders) and vice versa. If you need a merged single-date view, pull from `getAllFixtures` and filter — don't add merge logic to `getFixturesByDate`.
 - [lib/cache.ts](lib/cache.ts) — module-level `Map`, 5-min TTL for fixtures, 30-sec for live, 24-hr for players. News has its own 30-min cache in the route handler.
 - [lib/providers/thesportsdb.ts](lib/providers/thesportsdb.ts) — league ID `4429`, season `2026`. **All fetches now go through `lib/fetch-limited.ts`** — streamed with a 2 MB byte cap and 8 s timeout via AbortController. Throws on cap-exceed.
 - [lib/providers/openfootball.ts](lib/providers/openfootball.ts) — reads [data/worldcup-2026.json](data/worldcup-2026.json) at build time. No network.
@@ -157,9 +167,8 @@ Registered **only in production** ([components/ServiceWorkerRegister.tsx](compon
 | `wc26.myTeam` | `JerseyThemeProvider` | `string` matching `^[A-Z—-]+$`, max 8 chars, must resolve via `getTeam`. Absence = neutral mode. |
 | `wc26.bracket` | `/bracket` page | `Record<number, "slot1" \| "slot2">` — match num 1–200 → predicted side. Bad blobs self-purge. |
 
-## What's deferred (post Phase 9.5)
+## What's deferred (post Phase 10)
 
-- Vercel deploy (Phase 10) — no env vars needed; repo isn't in any git remote yet.
 - API-Football integration (lineups, live stats) — future, gated on a paid key.
 - Per-IP rate limit on Edge routes — flagged in security audit; one-user traffic makes it low-priority.
 - Service worker TTL on `/api/*` responses — currently unbounded SWR; cap entry count when traffic grows.
