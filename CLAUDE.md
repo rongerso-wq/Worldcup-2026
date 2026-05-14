@@ -10,6 +10,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Phased build plan** (source of truth for what to build next): `C:\Users\litbe\.claude\plans\i-want-to-built-floating-lighthouse.md`. Phases 1–9.5 shipped (Phase 9 = motion + haptics + service worker + a11y/perf polish; Phase 9.5 layered in the Smith/Gourges audit fixes — CSP, fetch byte caps, focus trap, theme-bootstrap script, contrast tokens, bracket round-jumper). **Phase 10 (Vercel deploy) shipped.**
 
+**Phase 11 (Triad-debate audit pass) shipped.** A 3-agent audit (Security · UX/a11y · Product) was run against the deployed app and the strict 2/3 + loose 2/3 consensus items + selected 1/3 outliers were implemented:
+- Per-IP rate limit on every `/api/*` route ([lib/ratelimit.ts](lib/ratelimit.ts)) — 30 req/min/IP, in-memory token bucket
+- CSP nonce migration ([middleware.ts](middleware.ts)) — removed `'unsafe-inline'` from script-src, replaced with per-request `'nonce-XXX' 'strict-dynamic'`
+- a11y polish: `prefers-reduced-motion` on the countdown digit-roll, `aria-current="step"` on bracket round-jumper, `--team-ink-hi` focus rings (visible on pale kits), MatchCard secondary text 10px→12px + line-clamp-2, NewsStrip retry/CTA on error+empty
+- UX: scroll-snap + edge-fade on TeamPickerStrip, first-time `FirstTimeHero` on `/` with sessionStorage skip
+- Product: ICS calendar export on `/me` for your team's group fixtures ([lib/ics.ts](lib/ics.ts) + [components/MyFixturesCard.tsx](components/MyFixturesCard.tsx))
+
 **Live deployment:**
 - Production: <https://world-cup-2026-rouge.vercel.app>
 - GitHub: <https://github.com/rongerso-wq/Worldcup-2026> (auto-deploys to Vercel on push to `main`)
@@ -24,7 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 |---|---|
 | `npm run dev` | Start Turbopack dev server. Port floats: prefers :3000, falls back. Check the `- Local: http://localhost:XXXX` boot line. If multiple stale `node` processes are holding ports, kill them before starting fresh — HMR on a stale server is a silent-bug factory. |
 | `npm run build` | Production build via Next 16. TS strict; build will fail on any type error. |
-| `npm start` | Run prod build locally (serves with the CSP/security headers from `next.config.ts`). |
+| `npm start` | Run prod build locally (serves with the per-request CSP from `middleware.ts` + static security headers from `next.config.ts`). |
 | `npm run lint` | ESLint flat config. |
 
 No test runner. Smoke-test the data layer: `curl http://localhost:XXXX/api/fixtures?date=2026-06-11` should return the **Mexico vs South Africa opener at Estadio Azteca**, `kickoffISO: "2026-06-11T19:00:00"` (= **19:00 UTC = 22:00 IL** — see Israel-time section).
@@ -77,7 +84,9 @@ All routes under `app/api/` are `runtime = "edge"`:
 - [/api/live](app/api/live/route.ts), [/api/match/[id]](app/api/match/[id]/route.ts), [/api/team/[code]](app/api/team/[code]/route.ts), [/api/player](app/api/player/route.ts) — all length-cap their query/path params and return generic `fetch_failed` / `bad_request` strings on error. **Never echo upstream `Error.message`** — that's how internal URLs and statuses leak.
 - [/api/news/[code]](app/api/news/[code]/route.ts) — Google News RSS proxy. **Hardened against ReDoS**: 1 MB upstream cap, per-item 20 KB regex bound, per-field 600-char capture, iteration cap (200 items), entity-decode capped at 100 KB with codepoint guard. 30-min in-memory cache.
 
-The cache is module-level `Map`-based, so cold Edge invocations get a fresh cache — acceptable because all backing services are CORS-clean and free. No per-IP rate limit yet (flagged in audit; OK while traffic is one-user).
+The cache is module-level `Map`-based, so cold Edge invocations get a fresh cache — acceptable because all backing services are CORS-clean and free.
+
+**Per-IP rate limit** ([lib/ratelimit.ts](lib/ratelimit.ts)): every route calls `checkRateLimit(req)` as its first statement. Default: 30 requests / 60 s, keyed on `x-forwarded-for` (left-most). On exhaustion returns 429 with `Retry-After`. The bucket map is module-level + LRU-capped at 2000 entries; resets per cold Edge instance, so N warm instances effectively multiply the budget. Acceptable trade-off vs. Upstash/KV at current traffic — swap when traffic justifies it without touching route code.
 
 ### Jersey theming — runtime CSS-var swap + WebGL canvas
 
@@ -115,7 +124,9 @@ The nav uses `bottom: max(1rem, env(safe-area-inset-bottom))` so it clears the i
 - [components/PlayerCard.tsx](components/PlayerCard.tsx) is the FUT-style chemistry card. Fetches via `/api/player`. Images: `referrerPolicy="no-referrer"`, forced to `https://`. **No `crossOrigin` attribute** — TheSportsDB doesn't return CORS headers and adding it makes the browser refuse to render.
 - [components/PlayerSheet.tsx](components/PlayerSheet.tsx) — bottom-sheet modal with **focus trap** (Tab cycles within the sheet), initial focus on the Close button, restore focus to the trigger on close. `Escape` is preventDefault'd. Same image rules as PlayerCard.
 - [components/TodayHero.tsx](components/TodayHero.tsx) — countdown to opener. Digits are framer-motion animated (`AnimatePresence mode="popLayout"`), vertical roll on every tick. Font size is `clamp()`-based so 3-digit "days" doesn't overflow a 360 px viewport.
-- [components/NewsStrip.tsx](components/NewsStrip.tsx) — horizontal-scroll news strip. Headlines tap-out to `target="_blank" rel="noopener noreferrer"` Google News URLs. Strips trailing ` - Source` suffix when `<source>` field is also present.
+- [components/NewsStrip.tsx](components/NewsStrip.tsx) — horizontal-scroll news strip. Headlines tap-out to `target="_blank" rel="noopener noreferrer"` Google News URLs. Strips trailing ` - Source` suffix when `<source>` field is also present. Error + empty states offer a Retry button and a "See fixtures →" deep-link fallback so the strip is never a dead-end.
+- [components/FirstTimeHero.tsx](components/FirstTimeHero.tsx) — compact card rendered on `/` only when `!hasTeam`. Six "popular" team chips (BRA/ARG/ENG/FRA/ESP/GER) + a "see all 48" deep-link to `/teams`. Dismiss persists for the session via `sessionStorage` key `wc26.heroDismissed` (the only `sessionStorage` key in the app). Picking a team also hides it via the parent `!hasTeam` gate.
+- [components/MyFixturesCard.tsx](components/MyFixturesCard.tsx) — on `/me`, fetches `/api/team/[code]` and filters to group-stage matches (`!!m.group`). "Add to calendar" button calls `buildIcs` + `downloadIcs` from [lib/ics.ts](lib/ics.ts) to drop a single `.ics` (RFC 5545: CRLF, 75-octet folding, escape, UTC). 2-hour event window per match covers 90 min + halftime + extra-time buffer.
 - Tapping a team tile on `/teams` **both selects the team and navigates** to `/team/[code]`. The `+` button (44×44 hit area with 28 px visual nub, `aria-pressed`) selects without navigating. Don't separate these flows again.
 
 `main` is constrained to `max-w-md` — mobile-only by design.
@@ -136,10 +147,13 @@ The nav uses `bottom: max(1rem, env(safe-area-inset-bottom))` so it clears the i
 
 ## Security posture
 
-- **CSP in [next.config.ts](next.config.ts)** — `default-src 'self'`, `connect-src 'self'`, `frame-ancestors 'none'`, `script-src 'self' 'unsafe-inline'` (+ `'unsafe-eval'` in dev for Turbopack HMR), `img-src 'self' data: blob: https://*.thesportsdb.com`, `worker-src 'self' blob:` for the SW. Also `Referrer-Policy: strict-origin-when-cross-origin`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy` (locks down sensors), HSTS in prod.
+- **CSP is per-request, set in [middleware.ts](middleware.ts)** — every response gets a fresh 16-byte base64 nonce. `script-src 'self' 'nonce-XXX' 'strict-dynamic'` (+ `'unsafe-eval'` in dev for Turbopack HMR). `'strict-dynamic'` lets Next's nonced bootstrap script transitively load its chunk URLs without each needing a nonce. `app/layout.tsx` is `async` and reads the nonce via `headers().get("x-nonce")` to apply it to the inline `THEME_BOOTSTRAP` `<script>`. **Side-effect: every page is now `ƒ Dynamic` (no static prerender)** — the nonce changes per request. Edge cache still kicks in for hot paths.
+- Other directives in the same CSP: `default-src 'self'`, `connect-src 'self'`, `frame-ancestors 'none'`, `img-src 'self' data: blob: https://*.thesportsdb.com`, `worker-src 'self' blob:` for the SW, `style-src 'self' 'unsafe-inline'` (Tailwind v4 atomic classes inject inline runtime styles), `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`.
+- Other security headers stay in [next.config.ts](next.config.ts) as static headers: `Referrer-Policy: strict-origin-when-cross-origin`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy` (locks down sensors), HSTS in prod. Don't move CSP back into `next.config.ts` headers — that would re-collide with the middleware-set header.
 - **No auth, no DB, no user accounts** — everything is localStorage. Both keys validate shape on read.
 - **No persistence to a server.** No analytics. No outbound network beyond same-origin `/api/*` (which proxies to TheSportsDB / Google News).
-- If you add a new image source, also extend `img-src` in the CSP — otherwise it'll silently fail in prod.
+- **Per-IP rate limit on every route** — see Edge API routes section.
+- If you add a new image source, also extend `img-src` in the middleware CSP — otherwise it'll silently fail in prod.
 
 ## Service worker
 
@@ -167,11 +181,15 @@ Registered **only in production** ([components/ServiceWorkerRegister.tsx](compon
 | `wc26.myTeam` | `JerseyThemeProvider` | `string` matching `^[A-Z—-]+$`, max 8 chars, must resolve via `getTeam`. Absence = neutral mode. |
 | `wc26.bracket` | `/bracket` page | `Record<number, "slot1" \| "slot2">` — match num 1–200 → predicted side. Bad blobs self-purge. |
 
-## What's deferred (post Phase 10)
+## What's deferred (post Phase 11)
 
-- API-Football integration (lineups, live stats) — future, gated on a paid key.
-- Per-IP rate limit on Edge routes — flagged in security audit; one-user traffic makes it low-priority.
-- Service worker TTL on `/api/*` responses — currently unbounded SWR; cap entry count when traffic grows.
-- 3-step onboarding modal — drifted from Phase 5 since on-page chip rail covered the picker UX; revisit if user asks.
-- Real Lighthouse run (target ≥90 perf / ≥95 a11y) — requires a deployed URL.
-- 🟡/⚪ items from the Gourges audit (font role rebalance, smoke veil luminance-aware, `IsometricPitch` actually isometric, `MePage` user-facing copy cleanup).
+Carrying forward — and items the triad audit surfaced but Tier 3 didn't claim yet:
+
+- **API-Football integration** (lineups, live stats) — future, gated on a paid key.
+- **Service worker TTL on `/api/*` responses** — currently unbounded SWR; cap entry count when traffic grows. Re-flagged by triad Agent A.
+- **Opt-in matchday push reminders** — triad Tier 3 #16 (Agent C). Web Push + permission UX + scheduling worker. Defer until ≤1 week pre-kickoff; reminders matter less 4+ weeks out.
+- **Bracket "% predicted" social proof** — triad Tier 3 #18. Needs a KV store (Upstash KV via `@vercel/kv` or Redis) — first infra cost in the app.
+- **"Since you were here" return-visit card on /** — triad Tier 3 #19. Persist `wc26.lastVisitMs`; show "2 matches finished, your bracket is 3/3" delta card.
+- **Real Lighthouse run** (target ≥90 perf / ≥95 a11y) — possible now that the URL is live; not yet run.
+- 🟡/⚪ items from the original Gourges audit (font role rebalance, smoke veil luminance-aware, `IsometricPitch` actually isometric).
+- **CSP further-hardening** — triad Agent A 1/3 outliers: COOP / CORP / COEP headers, hex validation in `THEME_BOOTSTRAP` before `setProperty`, URL-scheme allowlist on news `link` field, SAX-style RSS parser to replace bounded-regex.
