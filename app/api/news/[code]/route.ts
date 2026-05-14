@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTeam, NEUTRAL_TEAM } from "@/lib/teams";
 import { fetchText, UpstreamTooLargeError } from "@/lib/fetch-limited";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 export const runtime = "edge";
 
@@ -91,9 +92,11 @@ async function fetchNews(query: string): Promise<Article[]> {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ code: string }> },
 ) {
+  const rl = checkRateLimit(req);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const { code } = await ctx.params;
   // Length cap + whitelist check (team code is always 2-4 chars).
   if (typeof code !== "string" || code.length > 8) {

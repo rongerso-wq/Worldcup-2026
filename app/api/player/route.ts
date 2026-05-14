@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { getPlayer } from "@/lib/data";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 export const runtime = "edge";
 
 export async function GET(req: Request) {
+  const rl = checkRateLimit(req);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const url = new URL(req.url);
   const name = url.searchParams.get("name");
   const nationality = url.searchParams.get("nationality") ?? undefined;

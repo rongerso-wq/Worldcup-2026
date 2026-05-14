@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Bebas_Neue, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { JerseyThemeProvider } from "@/components/JerseyThemeProvider";
 import ThemedSmokeBackground from "@/components/ThemedSmokeBackground";
@@ -43,11 +44,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The CSP nonce is generated per-request in middleware.ts and propagated
+  // here via `x-nonce`. Required so the inline theme-bootstrap script is
+  // accepted under `script-src 'nonce-XXX' 'strict-dynamic'`.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${body.variable} ${display.variable} ${mono.variable} h-full antialiased`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
       <body className="min-h-full flex flex-col">
         <a

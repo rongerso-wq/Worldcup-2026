@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { getTeamFixtures } from "@/lib/data";
 import { getTeam } from "@/lib/teams";
+import { checkRateLimit, rateLimitResponse } from "@/lib/ratelimit";
 
 export const runtime = "edge";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ code: string }> }
 ) {
+  const rl = checkRateLimit(req);
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSec);
   const { code } = await ctx.params;
   if (typeof code !== "string" || code.length > 8) {
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
