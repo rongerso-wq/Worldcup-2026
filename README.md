@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Floating Lighthouse — WC26
 
-## Getting Started
+A mobile-first interactive web app for the **FIFA World Cup 2026** (USA · Canada · Mexico · 11 June – 19 July 2026 · 48 teams · 104 matches).
 
-First, run the development server:
+Not another scoreboard — a focused, single-tournament app. Pick a team and the entire UI repaints in that team's jersey colors via CSS custom properties and a WebGL fbm-smoke shader that tints the whole canvas.
+
+**Live:** [world-cup-2026-rouge.vercel.app](https://world-cup-2026-rouge.vercel.app)
+
+## Features
+
+- **48-team picker** with full jersey re-theming on the fly (primary / secondary / accent / WCAG-aware ink)
+- **Today hero** — countdown to opener (Mexico vs South Africa, Estadio Azteca, 22:00 IL on 11 June)
+- **Matches** — grouped by Israel-local matchday (a Mexico City evening match is an Israel pre-dawn match the next day)
+- **Teams** — 48 tiles, tap to select + navigate
+- **Bracket** — 32 knockout matches, round-jumper, predictions persist to `localStorage`
+- **Match detail** — lineups, isometric pitch view, news strip
+- **Me** — your selected team, your bracket predictions
+- **WebGL2 fbm smoke** background, tinted by team primary, paused under `prefers-reduced-motion`
+- **PWA** — installable, service-worker cached, works offline after first load
+
+## Stack
+
+- **Next.js 16** (App Router, Turbopack)
+- **React 19** + **TypeScript** strict
+- **Tailwind CSS v4** (tokens via `@theme inline`, no `tailwind.config.ts`)
+- **framer-motion** (page transitions, countdown digit-roll — under `LazyMotion strict`)
+- **WebGL2** — vanilla, no library
+- Deployed on **Vercel** (edge functions for the data layer)
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Smoke-test the data layer:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+curl http://localhost:3000/api/fixtures?date=2026-06-11
+```
 
-## Learn More
+Should return the **Mexico vs South Africa** opener at Estadio Azteca.
 
-To learn more about Next.js, take a look at the following resources:
+## Data sources
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **[openfootball/worldcup.json](https://github.com/openfootball/worldcup.json)** — full 104-match schedule (base layer)
+- **[TheSportsDB](https://www.thesportsdb.com)** — enrichment: confirmed venues, kickoff ISOs, team badges, player photos
+- **Google News RSS** — per-team news (no API key)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+No paid APIs, no auth, no DB, no user accounts. Everything is `localStorage`.
 
-## Deploy on Vercel
+## Project docs
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [CLAUDE.md](./CLAUDE.md) — full architecture notes, conventions, gotchas
+- [AGENTS.md](./AGENTS.md) — agent guidance
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+Personal project. Not affiliated with FIFA.
